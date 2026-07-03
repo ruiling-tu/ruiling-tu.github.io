@@ -43,6 +43,23 @@ draft: false
 
 or remove the `draft` line.
 
+## Edit An Existing Article
+
+Open the article file in:
+
+```text
+src/pages/writings/
+```
+
+For the current article, edit:
+
+```text
+src/pages/writings/zai-xia-ri-de-xun-huan-li.md
+```
+
+The top block controls the title, subtitle, date, category, and draft status.
+Everything below the second `---` is the article body.
+
 ## Add Images
 
 Put images in:

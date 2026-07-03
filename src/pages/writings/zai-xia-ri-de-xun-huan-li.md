@@ -1,7 +1,7 @@
 ---
 layout: ../../layouts/PostLayout.astro
 title: "在夏日的循环里"
-description: "新的博客，新的循环。"
+description: "旋转跳跃，我闭着眼"
 pubDate: 2026-07-03
 category: "散文"
 draft: false

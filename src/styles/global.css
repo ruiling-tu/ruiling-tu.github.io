@@ -5,7 +5,8 @@
   --line: rgba(0, 0, 0, 0.16);
   --measure: 42rem;
   font-family:
-    "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, -apple-system,
+    "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--text);
   background: var(--background);
@@ -25,7 +26,7 @@ body {
   background: var(--background);
   color: var(--text);
   font-size: 16px;
-  line-height: 1.35;
+  line-height: 1.45;
 }
 
 a {
@@ -171,6 +172,7 @@ h1,
 .post-description {
   margin-top: 0.75rem;
   color: var(--muted);
+  line-height: 1.65;
 }
 
 .post-image-link {
@@ -219,8 +221,8 @@ h1,
 }
 
 .post-hero {
-  max-width: var(--measure);
-  margin-bottom: 2.5rem;
+  max-width: 38rem;
+  margin-bottom: 2.8rem;
 }
 
 .post-hero h1 {
@@ -235,11 +237,19 @@ h1,
 }
 
 .prose {
-  max-width: var(--measure);
+  max-width: 38rem;
+  font-family:
+    "Noto Serif SC", "Songti SC", STSong, "Source Han Serif SC", "SimSun",
+    "Times New Roman", serif;
+  font-size: 1.06rem;
+  font-weight: 400;
+  line-height: 1.95;
+  letter-spacing: 0.01em;
+  text-wrap: pretty;
 }
 
 .prose > * + * {
-  margin-top: 1rem;
+  margin-top: 1.35em;
 }
 
 .prose h2,
@@ -251,12 +261,12 @@ h1,
 
 .prose img {
   width: min(100%, 38rem);
-  margin-top: 1.5rem;
+  margin-top: 2.2rem;
 }
 
 .post-footer {
-  max-width: var(--measure);
-  margin-top: 3rem;
+  max-width: 38rem;
+  margin-top: 3.5rem;
 }
 
 .about-grid {
