@@ -1,0 +1,44 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "Personal Blog",
+  description = "A quiet place for essays, notes, and images."
+} = Astro.props;
+
+const pageTitle = title === "Personal Blog" ? title : `${title} | Personal Blog`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <title>{pageTitle}</title>
+  </head>
+  <body>
+    <div class="site-shell">
+      <aside class="site-sidebar" aria-label="Site navigation">
+        <a class="site-mark" href="/" aria-label="Personal Blog home">
+          <span class="site-title">Ruiling Tu</span>
+          <span class="site-subtitle">Writings and pictures.</span>
+        </a>
+        <nav class="site-nav">
+          <a href="/">Writing</a>
+          <a href="/about/">About</a>
+          <a href="/archive/">Archive</a>
+          <a href="/rss.xml">RSS</a>
+        </nav>
+      </aside>
+      <main class="site-main">
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>

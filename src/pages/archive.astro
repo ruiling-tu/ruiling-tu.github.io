@@ -1,0 +1,53 @@
+---
+import type { MarkdownInstance } from "astro";
+import SiteLayout from "../layouts/SiteLayout.astro";
+
+type PostFrontmatter = {
+  title: string;
+  description: string;
+  pubDate: string;
+  category?: string;
+  heroImage: string;
+  heroAlt?: string;
+  draft?: boolean;
+};
+
+const postModules = import.meta.glob<MarkdownInstance<PostFrontmatter>>(
+  "./writings/*.md",
+  { eager: true }
+);
+
+const posts = Object.values(postModules)
+  .filter((post) => !post.frontmatter.draft)
+  .sort(
+    (a, b) =>
+      new Date(b.frontmatter.pubDate).valueOf() -
+      new Date(a.frontmatter.pubDate).valueOf()
+  );
+---
+
+<SiteLayout title="Archive" description="All writings from the personal blog.">
+  <header class="page-head">
+    <h1 class="page-title">All writings.</h1>
+    <p class="page-intro">
+      A reverse-chronological index.
+    </p>
+  </header>
+
+  <div class="archive-list">
+    {
+      posts.map((post) => (
+        <a class="archive-row" href={post.url}>
+          <span>
+            {new Date(post.frontmatter.pubDate).toLocaleDateString("en", {
+              year: "numeric",
+              month: "short"
+            })}
+          </span>
+          <strong>{post.frontmatter.title}</strong>
+          <small>{post.frontmatter.category ?? "Writing"}</small>
+        </a>
+      ))
+    }
+  </div>
+</SiteLayout>

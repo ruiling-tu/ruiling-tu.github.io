@@ -1,0 +1,318 @@
+:root {
+  --background: #fff;
+  --text: #111;
+  --muted: rgba(0, 0, 0, 0.58);
+  --line: rgba(0, 0, 0, 0.16);
+  --measure: 42rem;
+  font-family:
+    "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--text);
+  background: var(--background);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.16em;
+}
+
+a:hover {
+  color: var(--muted);
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.site-shell {
+  display: grid;
+  grid-template-columns: 14rem minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.site-sidebar {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+.site-mark {
+  display: inline-block;
+  margin-bottom: 3rem;
+  text-decoration: none;
+}
+
+.site-title {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+.site-subtitle {
+  display: block;
+  max-width: 9.5rem;
+  margin-top: 0.7rem;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.site-nav {
+  display: grid;
+  gap: 0.28rem;
+  font-size: 0.95rem;
+}
+
+.site-nav a {
+  width: fit-content;
+  text-decoration: none;
+}
+
+.site-main {
+  width: min(75vw, 58rem);
+  padding: 2rem 2rem 5rem;
+}
+
+.page-head {
+  max-width: var(--measure);
+  margin-bottom: 3rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1,
+.page-title {
+  font-size: 1.1rem;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.page-intro {
+  max-width: var(--measure);
+  margin-top: 1rem;
+  color: var(--muted);
+}
+
+.home-note {
+  max-width: var(--measure);
+  margin-bottom: 4rem;
+}
+
+.home-note p + p {
+  margin-top: 1rem;
+}
+
+.section-title {
+  margin-bottom: 1rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 400;
+}
+
+.post-list {
+  display: grid;
+  gap: 3.5rem;
+}
+
+.post-preview {
+  max-width: var(--measure);
+}
+
+.post-preview h2 {
+  margin-bottom: 0.25rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.post-preview h2 a {
+  text-decoration: none;
+}
+
+.post-kicker,
+.post-meta {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.post-description {
+  margin-top: 0.75rem;
+  color: var(--muted);
+}
+
+.post-image-link {
+  display: block;
+  width: min(100%, 34rem);
+  margin-top: 1rem;
+  text-decoration: none;
+}
+
+.post-image-link img,
+.post-hero-image,
+.about-image,
+.prose img {
+  width: 100%;
+  background: #f4f4f4;
+}
+
+.post-image-link img {
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.archive-list {
+  max-width: var(--measure);
+}
+
+.archive-row {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  gap: 1rem;
+  padding: 0.35rem 0;
+  text-decoration: none;
+}
+
+.archive-row span,
+.archive-row small {
+  color: var(--muted);
+}
+
+.archive-row strong {
+  font-weight: 400;
+}
+
+.archive-row small {
+  display: none;
+}
+
+.post-hero {
+  max-width: var(--measure);
+  margin-bottom: 2.5rem;
+}
+
+.post-hero h1 {
+  margin-top: 0.25rem;
+}
+
+.post-hero-image {
+  width: min(100%, 38rem);
+  margin-top: 1.25rem;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.prose {
+  max-width: var(--measure);
+}
+
+.prose > * + * {
+  margin-top: 1rem;
+}
+
+.prose h2,
+.prose h3 {
+  margin-top: 2rem;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.prose img {
+  width: min(100%, 38rem);
+  margin-top: 1.5rem;
+}
+
+.post-footer {
+  max-width: var(--measure);
+  margin-top: 3rem;
+}
+
+.about-grid {
+  display: grid;
+  gap: 2rem;
+  max-width: var(--measure);
+}
+
+.about-image {
+  width: min(100%, 26rem);
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+@media (max-width: 760px) {
+  body {
+    font-size: 15px;
+  }
+
+  .site-shell {
+    display: block;
+  }
+
+  .site-sidebar {
+    position: static;
+    min-height: 0;
+    padding: 1.25rem;
+  }
+
+  .site-mark {
+    margin-bottom: 1.5rem;
+  }
+
+  .site-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .site-main {
+    width: 100%;
+    padding: 1.25rem 1.25rem 4rem;
+  }
+
+  .home-note {
+    margin-bottom: 3rem;
+  }
+
+  .archive-row {
+    grid-template-columns: 1fr;
+    gap: 0.1rem;
+    padding: 0.55rem 0;
+  }
+}
