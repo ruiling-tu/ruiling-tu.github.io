@@ -1,4 +1,4 @@
-# Personal Blog
+# Wells Tu
 
 A small, writing-first Astro site published at:
 

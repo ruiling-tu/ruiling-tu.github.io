@@ -267,8 +267,6 @@ h1,
 
 .about-image {
   width: min(100%, 26rem);
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
 }
 
 code {

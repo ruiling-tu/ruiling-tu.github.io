@@ -7,7 +7,7 @@ type PostFrontmatter = {
   description: string;
   pubDate: string;
   category?: string;
-  heroImage: string;
+  heroImage?: string;
   heroAlt?: string;
   draft?: boolean;
 };
@@ -29,13 +29,13 @@ const featuredPosts = posts.slice(0, 3);
 ---
 
 <SiteLayout
-  title="Personal Blog"
-  description="A quiet personal blog for writings with pictures."
+  title="Wells Tu"
+  description="Aufhebung"
 >
   <section class="home-note" aria-labelledby="home-title">
     <h1 id="home-title">Writing</h1>
     <p class="page-intro">
-      Essays, notes, and images gathered in one quiet place.
+      散文、小说、正经人不写日记
     </p>
   </section>
 

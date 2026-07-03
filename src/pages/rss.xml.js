@@ -28,8 +28,8 @@ export async function GET({ site }) {
     `<?xml version="1.0" encoding="UTF-8" ?>
     <rss version="2.0">
       <channel>
-        <title>Personal Blog</title>
-        <description>Writings, fragments, pictures, and field notes.</description>
+        <title>Wells Tu</title>
+        <description>Aufhebung</description>
         <link>${origin}</link>
         ${items}
       </channel>
