@@ -4,6 +4,7 @@
   --muted: rgba(0, 0, 0, 0.58);
   --line: rgba(0, 0, 0, 0.16);
   --measure: 42rem;
+  --article-measure: min(100%, clamp(38rem, 58vw, 52rem));
   font-family:
     "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Hiragino Sans GB",
     "Microsoft YaHei", ui-sans-serif, system-ui, -apple-system,
@@ -93,7 +94,7 @@ img {
 }
 
 .site-main {
-  width: min(75vw, 58rem);
+  width: min(calc(100vw - 14rem), 74rem);
   padding: 2rem 2rem 5rem;
 }
 
@@ -221,8 +222,9 @@ h1,
 }
 
 .post-hero {
-  max-width: 38rem;
-  margin-bottom: 2.8rem;
+  width: var(--article-measure);
+  max-width: 100%;
+  margin-bottom: clamp(2.4rem, 4vw, 4rem);
 }
 
 .post-hero h1 {
@@ -230,26 +232,28 @@ h1,
 }
 
 .post-hero-image {
-  width: min(100%, 38rem);
+  width: 100%;
   margin-top: 1.25rem;
   aspect-ratio: 4 / 3;
   object-fit: cover;
 }
 
 .prose {
-  max-width: 38rem;
+  width: var(--article-measure);
+  max-width: 100%;
   font-family:
     "Noto Serif SC", "Songti SC", STSong, "Source Han Serif SC", "SimSun",
     "Times New Roman", serif;
   font-size: 1.06rem;
   font-weight: 400;
-  line-height: 1.95;
-  letter-spacing: 0.01em;
+  line-height: 2;
+  letter-spacing: 0;
   text-wrap: pretty;
+  overflow-wrap: break-word;
 }
 
 .prose > * + * {
-  margin-top: 1.35em;
+  margin-top: 1.45em;
 }
 
 .prose h2,
@@ -260,13 +264,14 @@ h1,
 }
 
 .prose img {
-  width: min(100%, 38rem);
-  margin-top: 2.2rem;
+  width: 100%;
+  margin-top: 2.5rem;
 }
 
 .post-footer {
-  max-width: 38rem;
-  margin-top: 3.5rem;
+  width: var(--article-measure);
+  max-width: 100%;
+  margin-top: 4rem;
 }
 
 .about-grid {
@@ -314,6 +319,37 @@ code {
     padding: 1.25rem 1.25rem 4rem;
   }
 
+  .post-hero {
+    width: 100%;
+    margin-bottom: 2.25rem;
+  }
+
+  .post-hero h1 {
+    line-height: 1.35;
+  }
+
+  .prose {
+    width: 100%;
+    font-family:
+      "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", ui-sans-serif,
+      system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 1rem;
+    line-height: 2.05;
+  }
+
+  .prose > * + * {
+    margin-top: 1.55em;
+  }
+
+  .prose img {
+    margin-top: 2rem;
+  }
+
+  .post-footer {
+    width: 100%;
+    margin-top: 3rem;
+  }
+
   .home-note {
     margin-bottom: 3rem;
   }
@@ -322,5 +358,40 @@ code {
     grid-template-columns: 1fr;
     gap: 0.1rem;
     padding: 0.55rem 0;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1080px) {
+  :root {
+    --article-measure: min(100%, 44rem);
+  }
+
+  .site-shell {
+    grid-template-columns: 12rem minmax(0, 1fr);
+  }
+
+  .site-sidebar {
+    padding: 1.75rem;
+  }
+
+  .site-main {
+    width: min(calc(100vw - 12rem), 62rem);
+    padding: 1.75rem 1.75rem 5rem;
+  }
+
+  .prose {
+    font-size: 1.04rem;
+    line-height: 1.98;
+  }
+}
+
+@media (min-width: 1400px) {
+  :root {
+    --article-measure: min(100%, 54rem);
+  }
+
+  .prose {
+    font-size: 1.08rem;
+    line-height: 2.02;
   }
 }
