@@ -147,11 +147,11 @@ h1,
 
 .post-list {
   display: grid;
-  gap: 3.5rem;
+  gap: clamp(3.25rem, 6vw, 5rem);
 }
 
 .post-preview {
-  max-width: var(--measure);
+  max-width: var(--article-measure);
 }
 
 .post-preview h2 {
@@ -178,8 +178,8 @@ h1,
 
 .post-image-link {
   display: block;
-  width: min(100%, 34rem);
-  margin-top: 1rem;
+  width: min(100%, clamp(18rem, 42vw, 34rem));
+  margin-top: 1.4rem;
   text-decoration: none;
 }
 
@@ -192,8 +192,8 @@ h1,
 }
 
 .post-image-link img {
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
+  height: auto;
+  object-fit: contain;
 }
 
 .archive-list {
@@ -322,6 +322,11 @@ code {
   .post-hero {
     width: 100%;
     margin-bottom: 2.25rem;
+  }
+
+  .post-image-link {
+    width: 100%;
+    margin-top: 1.25rem;
   }
 
   .post-hero h1 {

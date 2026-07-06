@@ -26,6 +26,19 @@ const posts = Object.values(postModules)
   );
 
 const featuredPosts = posts.slice(0, 3);
+
+const getFirstMarkdownImage = (post: MarkdownInstance<PostFrontmatter>) => {
+  const match = post.rawContent().match(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+["'][^)]*["'])?\)/);
+
+  if (!match) {
+    return undefined;
+  }
+
+  return {
+    alt: match[1],
+    src: match[2].replace(/^<|>$/g, "")
+  };
+};
 ---
 
 <SiteLayout
@@ -43,32 +56,43 @@ const featuredPosts = posts.slice(0, 3);
     <h2 class="section-title" id="latest-title">Latest</h2>
     <div class="post-list">
       {
-        featuredPosts.map((post) => (
-          <article class="post-preview">
-            <div>
-              <p class="post-kicker">
-                {new Date(post.frontmatter.pubDate).toLocaleDateString("en", {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric"
-                })}
-              </p>
-              <h2><a href={post.url}>{post.frontmatter.title}</a></h2>
-              <p class="post-description">{post.frontmatter.description}</p>
-            </div>
-            {
-              post.frontmatter.heroImage && (
+        featuredPosts.map((post) => {
+          const previewImage = getFirstMarkdownImage(post) ?? (
+            post.frontmatter.heroImage
+              ? {
+                  src: post.frontmatter.heroImage,
+                  alt: post.frontmatter.heroAlt ?? ""
+                }
+              : undefined
+          );
+
+          return (
+            <article class="post-preview">
+              <div>
+                <p class="post-kicker">
+                  {new Date(post.frontmatter.pubDate).toLocaleDateString("en", {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric"
+                  })}
+                </p>
+                <h2><a href={post.url}>{post.frontmatter.title}</a></h2>
+                <p class="post-description">{post.frontmatter.description}</p>
+              </div>
+              {
+                previewImage && (
                 <a class="post-image-link" href={post.url}>
                   <img
-                    src={post.frontmatter.heroImage}
-                    alt={post.frontmatter.heroAlt ?? ""}
+                    src={previewImage.src}
+                    alt={previewImage.alt}
                     loading="lazy"
                   />
                 </a>
-              )
-            }
-          </article>
-        ))
+                )
+              }
+            </article>
+          );
+        })
       }
     </div>
   </section>

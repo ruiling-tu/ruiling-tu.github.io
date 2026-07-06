@@ -89,7 +89,6 @@ heroAlt: "Description of the image"
 - Archive page heading: `src/pages/archive.astro`
 - Individual articles: `src/pages/writings/*.md`
 - Visual design: `src/styles/global.css`
-- RSS feed text: `src/pages/rss.xml.js`
 
 The archive page is mostly automatic. It lists all non-draft Markdown posts from
 `src/pages/writings/`, sorted by `pubDate`.
