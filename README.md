@@ -118,3 +118,45 @@ You can also edit files in the GitHub web interface:
 4. Commit the change to `main`.
 
 GitHub Pages will republish automatically.
+
+## Browser Admin Editor
+
+The site includes a private editor at:
+
+```text
+https://ruiling-tu.github.io/admin/
+```
+
+The editor can create and edit articles, format selected text, change font
+family and size, insert images, and publish changes. It uses a separate
+Cloudflare Worker as the secure backend because GitHub Pages is static and
+cannot safely store passwords or publishing tokens.
+
+The backend source is in:
+
+```text
+admin-worker/
+```
+
+Do not put the admin password or GitHub token in this repository. Store them as
+Worker secrets:
+
+```bash
+cd admin-worker
+npx wrangler login
+npx wrangler secret put ADMIN_PASSWORD
+npx wrangler secret put SESSION_SECRET
+npx wrangler secret put GITHUB_TOKEN
+npx wrangler deploy
+```
+
+After the Worker is deployed, add its URL to the GitHub repository variable used
+by the Pages build:
+
+```bash
+gh variable set PUBLIC_ADMIN_API_URL --body "https://wells-blog-admin.<your-subdomain>.workers.dev"
+```
+
+Then rerun the GitHub Pages workflow or push a new commit. Once that variable is
+set, `/admin/` will connect to the Worker and publishing from the browser will
+trigger the normal GitHub Pages rebuild automatically.

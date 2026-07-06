@@ -28,15 +28,32 @@ const posts = Object.values(postModules)
 const featuredPosts = posts.slice(0, 3);
 
 const getFirstMarkdownImage = (post: MarkdownInstance<PostFrontmatter>) => {
-  const match = post.rawContent().match(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+["'][^)]*["'])?\)/);
+  const rawContent = post.rawContent();
+  const match = rawContent.match(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+["'][^)]*["'])?\)/);
 
-  if (!match) {
+  if (match) {
+    return {
+      alt: match[1],
+      src: match[2].replace(/^<|>$/g, "")
+    };
+  }
+
+  const imageTag = rawContent.match(/<img\b[^>]*>/i)?.[0];
+
+  if (!imageTag) {
+    return undefined;
+  }
+
+  const src = imageTag.match(/\bsrc=["']([^"']+)["']/i)?.[1];
+  const alt = imageTag.match(/\balt=["']([^"']*)["']/i)?.[1] ?? "";
+
+  if (!src) {
     return undefined;
   }
 
   return {
-    alt: match[1],
-    src: match[2].replace(/^<|>$/g, "")
+    alt,
+    src
   };
 };
 ---

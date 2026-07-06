@@ -1,0 +1,10 @@
+name = "wells-blog-admin"
+main = "src/index.js"
+compatibility_date = "2026-07-06"
+
+[vars]
+ADMIN_USERNAME = "wells_tu"
+GITHUB_OWNER = "ruiling-tu"
+GITHUB_REPO = "ruiling-tu.github.io"
+GITHUB_BRANCH = "main"
+ALLOWED_ORIGIN = "https://ruiling-tu.github.io"
