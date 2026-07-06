@@ -68,7 +68,7 @@ const getFirstMarkdownImage = (post: MarkdownInstance<PostFrontmatter>) => {
 
           return (
             <article class="post-preview">
-              <div>
+              <div class="post-preview-text">
                 <p class="post-kicker">
                   {new Date(post.frontmatter.pubDate).toLocaleDateString("en", {
                     year: "numeric",
