@@ -1,6 +1,8 @@
 name = "wells-blog-admin"
 main = "src/index.js"
 compatibility_date = "2026-07-06"
+workers_dev = true
+preview_urls = true
 
 [vars]
 ADMIN_USERNAME = "wells_tu"
