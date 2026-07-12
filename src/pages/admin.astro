@@ -201,6 +201,17 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
         font-size: 0.88rem;
       }
 
+      .image-tools input[type="range"] {
+        width: min(11rem, 100%);
+        padding: 0;
+      }
+
+      .image-tools output {
+        min-width: 2.8rem;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
       .button-row {
         display: flex;
         flex-wrap: wrap;
@@ -221,6 +232,7 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
         font-family: "Noto Serif SC", "Songti SC", "STSong", "Source Han Serif SC", SimSun, "Times New Roman", serif;
         font-size: 1.06rem;
         line-height: 2;
+        overflow-x: hidden;
       }
 
       .editor:focus {
@@ -229,6 +241,7 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
 
       .editor p {
         margin: 0 0 1.45em;
+        max-width: 100%;
       }
 
       .editor h2 {
@@ -239,10 +252,14 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
 
       .editor img {
         display: block;
+        box-sizing: border-box;
         width: 100%;
         max-width: 100%;
+        height: auto;
         margin: 2rem 0;
+        object-fit: contain;
         background: var(--panel);
+        cursor: pointer;
       }
 
       .editor img.is-selected {
@@ -392,9 +409,11 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
               </div>
               <div class="image-tools hidden" id="image-tools" aria-label="Image tools">
                 <span>Image</span>
-                <button data-image-size="45%" type="button">Small</button>
-                <button data-image-size="70%" type="button">Medium</button>
-                <button data-image-size="100%" type="button">Full</button>
+                <input id="image-width" type="range" min="25" max="100" step="5" value="100" aria-label="Image width" />
+                <output id="image-width-output" for="image-width">100%</output>
+                <button data-image-size="40" type="button">Small</button>
+                <button data-image-size="65" type="button">Medium</button>
+                <button data-image-size="100" type="button">Full</button>
                 <button data-image-align="left" type="button">Left</button>
                 <button data-image-align="center" type="button">Center</button>
                 <button data-image-align="right" type="button">Right</button>
@@ -419,6 +438,8 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
       const editor = document.querySelector("#editor");
       const imageInput = document.querySelector("#image-input");
       const imageTools = document.querySelector("#image-tools");
+      const imageWidth = document.querySelector("#image-width");
+      const imageWidthOutput = document.querySelector("#image-width-output");
       const fields = {
         title: document.querySelector("#title"),
         slug: document.querySelector("#slug"),
@@ -493,6 +514,16 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
         }
       };
 
+      const getImageWidthPercent = (image) => {
+        const width = Number.parseInt(image.style.width || "100", 10);
+
+        if (!Number.isFinite(width)) {
+          return 100;
+        }
+
+        return Math.min(100, Math.max(25, width));
+      };
+
       const setSelectedImage = (image) => {
         if (selectedImage) {
           selectedImage.classList.remove("is-selected");
@@ -501,10 +532,24 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
         selectedImage = image;
 
         if (selectedImage) {
+          constrainImage(selectedImage);
+          imageWidth.value = getImageWidthPercent(selectedImage);
+          imageWidthOutput.value = `${imageWidth.value}%`;
           selectedImage.classList.add("is-selected");
           imageTools.classList.remove("hidden");
         } else {
           imageTools.classList.add("hidden");
+        }
+      };
+
+      const constrainImage = (image) => {
+        image.style.maxWidth = "100%";
+        image.style.height = "auto";
+        image.style.boxSizing = "border-box";
+        image.style.objectFit = "contain";
+
+        if (!image.style.width || image.style.width === "auto") {
+          image.style.width = "100%";
         }
       };
 
@@ -518,6 +563,7 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
             throw new Error("Wait for image upload to finish before saving.");
           }
 
+          constrainImage(image);
           delete image.dataset.uploading;
           delete image.dataset.publishedSrc;
           image.classList.remove("is-selected");
@@ -680,6 +726,7 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
           image.src = previewSrc;
           image.alt = "";
           image.dataset.uploading = "true";
+          constrainImage(image);
           paragraph.append(image);
           insertNodeAtSavedRange(paragraph);
           setSelectedImage(image);
@@ -706,13 +753,16 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
         reader.readAsDataURL(file);
       };
 
-      const applyImageSize = (width) => {
+      const applyImageSize = (widthValue) => {
         if (!selectedImage) {
           return;
         }
 
-        selectedImage.style.width = width;
-        selectedImage.style.maxWidth = "100%";
+        const width = Math.min(100, Math.max(25, Number(widthValue) || 100));
+        selectedImage.style.width = `${width}%`;
+        constrainImage(selectedImage);
+        imageWidth.value = width;
+        imageWidthOutput.value = `${width}%`;
       };
 
       const applyImageAlign = (alignment) => {
@@ -771,6 +821,8 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
       document.querySelectorAll("[data-image-size]").forEach((button) => {
         button.addEventListener("click", () => applyImageSize(button.dataset.imageSize));
       });
+
+      imageWidth.addEventListener("input", () => applyImageSize(imageWidth.value));
 
       document.querySelectorAll("[data-image-align]").forEach((button) => {
         button.addEventListener("click", () => applyImageAlign(button.dataset.imageAlign));
