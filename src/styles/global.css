@@ -260,6 +260,10 @@ h1,
   overflow-wrap: break-word;
 }
 
+.prose p {
+  max-width: 100%;
+}
+
 .prose > * + * {
   margin-top: 1.45em;
 }
@@ -324,7 +328,7 @@ code {
 
   .site-main {
     width: 100%;
-    padding: 1.25rem 1.25rem 4rem;
+    padding: 1.25rem clamp(1.15rem, 5vw, 1.5rem) 4rem;
   }
 
   .post-hero {
@@ -357,6 +361,18 @@ code {
       system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: 1rem;
     line-height: 2.05;
+    text-align: justify;
+    text-justify: inter-character;
+    text-align-last: start;
+    word-break: normal;
+    overflow-wrap: anywhere;
+    -webkit-hyphens: none;
+    hyphens: none;
+  }
+
+  .prose span {
+    font-size: inherit !important;
+    line-height: inherit;
   }
 
   .prose > * + * {
