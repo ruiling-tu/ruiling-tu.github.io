@@ -290,10 +290,15 @@ const savePost = async (env, slug, payload) => {
     body.sha = payload.sha;
   }
 
-  return githubFetch(env, path, {
+  const result = await githubFetch(env, path, {
     method: "PUT",
     body: JSON.stringify(body)
   });
+
+  return {
+    commitSha: result.commit?.sha ?? "",
+    commitUrl: result.commit?.html_url ?? ""
+  };
 };
 
 const handleLogin = async (request, env) => {
@@ -363,13 +368,13 @@ const router = async (request, env) => {
 
     if (request.method === "PUT") {
       const payload = await request.json();
-      await savePost(env, slug, {
+      const result = await savePost(env, slug, {
         ...payload,
         slug,
         pubDate: payload.pubDate || new Date().toISOString().slice(0, 10)
       });
 
-      return json({ ok: true });
+      return json({ ok: true, ...result });
     }
   }
 

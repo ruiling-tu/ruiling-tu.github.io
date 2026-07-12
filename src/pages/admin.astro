@@ -397,15 +397,28 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
 
       const getToken = () => localStorage.getItem(tokenKey) ?? "";
 
+      const getErrorMessage = (error) => {
+        if (error.name === "AbortError") {
+          return "The request timed out. Check GitHub commits before trying again.";
+        }
+
+        return error.message || "Something went wrong.";
+      };
+
       const request = async (path, options = {}) => {
+        const { timeoutMs = 45000, ...fetchOptions } = options;
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+
         const response = await fetch(`${apiBase}${path}`, {
-          ...options,
+          ...fetchOptions,
+          signal: controller.signal,
           headers: {
             "Content-Type": "application/json",
             ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
-            ...(options.headers ?? {})
+            ...(fetchOptions.headers ?? {})
           }
-        });
+        }).finally(() => window.clearTimeout(timeout));
 
         const data = await response.json().catch(() => ({}));
 
@@ -472,24 +485,41 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
           return;
         }
 
-        setStatus(editorStatus, "Publishing...");
-        await request(`/api/posts/${encodeURIComponent(slug)}`, {
-          method: "PUT",
-          body: JSON.stringify({
-            sha: activeSha,
-            title,
-            slug,
-            description: fields.description.value.trim(),
-            pubDate: fields.pubDate.value,
-            category: fields.category.value.trim() || "Writing",
-            draft: !fields.published.checked,
-            contentHtml: editor.innerHTML.trim()
-          })
-        });
+        const saveButton = document.querySelector("#save-post-button");
 
-        setStatus(editorStatus, "Saved. GitHub Pages will republish in about a minute.");
-        activeSha = "";
-        await loadPosts();
+        try {
+          saveButton.disabled = true;
+          setStatus(editorStatus, "Publishing to GitHub...");
+          const result = await request(`/api/posts/${encodeURIComponent(slug)}`, {
+            method: "PUT",
+            timeoutMs: 60000,
+            body: JSON.stringify({
+              sha: activeSha,
+              title,
+              slug,
+              description: fields.description.value.trim(),
+              pubDate: fields.pubDate.value,
+              category: fields.category.value.trim() || "Writing",
+              draft: !fields.published.checked,
+              contentHtml: editor.innerHTML.trim()
+            })
+          });
+
+          setStatus(
+            editorStatus,
+            result.commitSha
+              ? `Saved to GitHub (${result.commitSha.slice(0, 7)}). GitHub Pages will republish in about a minute.`
+              : "Saved to GitHub. GitHub Pages will republish in about a minute."
+          );
+          activeSha = "";
+          loadPosts().catch(() => {
+            setStatus(editorStatus, "Saved to GitHub. Refresh the page to reload the article list.");
+          });
+        } catch (error) {
+          setStatus(editorStatus, `Publish failed: ${getErrorMessage(error)}`);
+        } finally {
+          saveButton.disabled = false;
+        }
       };
 
       const applySpanStyle = (style) => {
@@ -517,22 +547,27 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
       const insertImage = async (file) => {
         const reader = new FileReader();
         reader.addEventListener("load", async () => {
-          setStatus(editorStatus, "Uploading image...");
-          const { src } = await request("/api/upload", {
-            method: "POST",
-            body: JSON.stringify({
-              filename: file.name,
-              dataUrl: reader.result
-            })
-          });
+          try {
+            setStatus(editorStatus, "Uploading image...");
+            const { src } = await request("/api/upload", {
+              method: "POST",
+              timeoutMs: 90000,
+              body: JSON.stringify({
+                filename: file.name,
+                dataUrl: reader.result
+              })
+            });
 
-          const paragraph = document.createElement("p");
-          const image = document.createElement("img");
-          image.src = src;
-          image.alt = "";
-          paragraph.append(image);
-          editor.append(paragraph);
-          setStatus(editorStatus, "Image inserted.");
+            const paragraph = document.createElement("p");
+            const image = document.createElement("img");
+            image.src = src;
+            image.alt = "";
+            paragraph.append(image);
+            editor.append(paragraph);
+            setStatus(editorStatus, "Image inserted.");
+          } catch (error) {
+            setStatus(editorStatus, `Image upload failed: ${getErrorMessage(error)}`);
+          }
         });
         reader.readAsDataURL(file);
       };
