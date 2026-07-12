@@ -59,6 +59,11 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
         background: #333;
       }
 
+      button:disabled {
+        cursor: wait;
+        opacity: 0.55;
+      }
+
       .admin-shell {
         display: grid;
         grid-template-columns: 18rem minmax(0, 1fr);
@@ -183,6 +188,31 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
         padding: 0.45rem 0.62rem;
       }
 
+      .image-tools {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.45rem;
+        margin: -0.3rem 0 0.9rem;
+      }
+
+      .image-tools span {
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .button-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        margin-top: 1rem;
+      }
+
+      .button-row button {
+        min-height: 2.4rem;
+        padding: 0.55rem 0.75rem;
+      }
+
       .editor {
         min-height: 58vh;
         border: 1px solid var(--line);
@@ -213,6 +243,11 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
         max-width: 100%;
         margin: 2rem 0;
         background: var(--panel);
+      }
+
+      .editor img.is-selected {
+        outline: 2px solid #111;
+        outline-offset: 4px;
       }
 
       .row {
@@ -327,7 +362,10 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
                 Published
               </label>
               <p class="status" id="editor-status"></p>
-              <button class="primary" id="save-post-button" type="button">Publish changes</button>
+              <div class="button-row">
+                <button id="save-draft-button" type="button">Save draft</button>
+                <button class="primary" id="save-post-button" type="button">Publish</button>
+              </div>
             </div>
 
             <div>
@@ -352,6 +390,15 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
                 <button id="insert-image-button" type="button">Image</button>
                 <input class="hidden" id="image-input" type="file" accept="image/*" />
               </div>
+              <div class="image-tools hidden" id="image-tools" aria-label="Image tools">
+                <span>Image</span>
+                <button data-image-size="45%" type="button">Small</button>
+                <button data-image-size="70%" type="button">Medium</button>
+                <button data-image-size="100%" type="button">Full</button>
+                <button data-image-align="left" type="button">Left</button>
+                <button data-image-align="center" type="button">Center</button>
+                <button data-image-align="right" type="button">Right</button>
+              </div>
               <div class="editor" id="editor" contenteditable="true" spellcheck="true"></div>
             </div>
           </div>
@@ -371,6 +418,7 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
       const editorStatus = document.querySelector("#editor-status");
       const editor = document.querySelector("#editor");
       const imageInput = document.querySelector("#image-input");
+      const imageTools = document.querySelector("#image-tools");
       const fields = {
         title: document.querySelector("#title"),
         slug: document.querySelector("#slug"),
@@ -381,6 +429,8 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
       };
 
       let activeSha = "";
+      let selectedImage = undefined;
+      let savedRange = undefined;
 
       const setStatus = (node, message) => {
         node.textContent = message;
@@ -429,6 +479,73 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
         return data;
       };
 
+      const saveSelection = () => {
+        const selection = window.getSelection();
+
+        if (!selection || selection.rangeCount === 0) {
+          return;
+        }
+
+        const range = selection.getRangeAt(0);
+
+        if (editor.contains(range.commonAncestorContainer)) {
+          savedRange = range.cloneRange();
+        }
+      };
+
+      const setSelectedImage = (image) => {
+        if (selectedImage) {
+          selectedImage.classList.remove("is-selected");
+        }
+
+        selectedImage = image;
+
+        if (selectedImage) {
+          selectedImage.classList.add("is-selected");
+          imageTools.classList.remove("hidden");
+        } else {
+          imageTools.classList.add("hidden");
+        }
+      };
+
+      const prepareContentHtml = () => {
+        const clone = editor.cloneNode(true);
+
+        clone.querySelectorAll("img").forEach((image) => {
+          if (image.dataset.publishedSrc) {
+            image.src = image.dataset.publishedSrc;
+          } else if (image.src.startsWith("data:")) {
+            throw new Error("Wait for image upload to finish before saving.");
+          }
+
+          delete image.dataset.uploading;
+          delete image.dataset.publishedSrc;
+          image.classList.remove("is-selected");
+        });
+
+        return clone.innerHTML.trim();
+      };
+
+      const insertNodeAtSavedRange = (node) => {
+        editor.focus();
+        const range = savedRange?.cloneRange() ?? document.createRange();
+
+        if (!savedRange) {
+          range.selectNodeContents(editor);
+          range.collapse(false);
+        }
+
+        range.deleteContents();
+        range.insertNode(node);
+        range.setStartAfter(node);
+        range.collapse(true);
+
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        savedRange = range.cloneRange();
+      };
+
       const showEditor = () => {
         setupPanel.classList.add("hidden");
         loginForm.classList.add("hidden");
@@ -446,6 +563,7 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
         fields.category.value = "散文";
         fields.published.checked = true;
         editor.innerHTML = "<p></p>";
+        setSelectedImage(undefined);
         setStatus(editorStatus, "");
       };
 
@@ -473,10 +591,11 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
         fields.category.value = post.category;
         fields.published.checked = !post.draft;
         editor.innerHTML = post.contentHtml || "<p></p>";
+        setSelectedImage(undefined);
         setStatus(editorStatus, "Loaded.");
       };
 
-      const savePost = async () => {
+      const savePost = async ({ draft }) => {
         const title = fields.title.value.trim();
         const slug = fields.slug.value.trim() || slugify(title);
 
@@ -486,10 +605,13 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
         }
 
         const saveButton = document.querySelector("#save-post-button");
+        const draftButton = document.querySelector("#save-draft-button");
 
         try {
           saveButton.disabled = true;
-          setStatus(editorStatus, "Publishing to GitHub...");
+          draftButton.disabled = true;
+          fields.published.checked = !draft;
+          setStatus(editorStatus, draft ? "Saving draft to GitHub..." : "Publishing to GitHub...");
           const result = await request(`/api/posts/${encodeURIComponent(slug)}`, {
             method: "PUT",
             timeoutMs: 60000,
@@ -500,25 +622,30 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
               description: fields.description.value.trim(),
               pubDate: fields.pubDate.value,
               category: fields.category.value.trim() || "Writing",
-              draft: !fields.published.checked,
-              contentHtml: editor.innerHTML.trim()
+              draft,
+              contentHtml: prepareContentHtml()
             })
           });
 
           setStatus(
             editorStatus,
             result.commitSha
-              ? `Saved to GitHub (${result.commitSha.slice(0, 7)}). GitHub Pages will republish in about a minute.`
-              : "Saved to GitHub. GitHub Pages will republish in about a minute."
+              ? `${draft ? "Draft saved" : "Saved to GitHub"} (${result.commitSha.slice(0, 7)}). ${
+                  draft ? "It will stay hidden until you publish it." : "GitHub Pages will republish in about a minute."
+                }`
+              : draft
+                ? "Draft saved. It will stay hidden until you publish it."
+                : "Saved to GitHub. GitHub Pages will republish in about a minute."
           );
           activeSha = "";
           loadPosts().catch(() => {
             setStatus(editorStatus, "Saved to GitHub. Refresh the page to reload the article list.");
           });
         } catch (error) {
-          setStatus(editorStatus, `Publish failed: ${getErrorMessage(error)}`);
+          setStatus(editorStatus, `${draft ? "Draft save" : "Publish"} failed: ${getErrorMessage(error)}`);
         } finally {
           saveButton.disabled = false;
+          draftButton.disabled = false;
         }
       };
 
@@ -547,8 +674,18 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
       const insertImage = async (file) => {
         const reader = new FileReader();
         reader.addEventListener("load", async () => {
+          const previewSrc = reader.result;
+          const paragraph = document.createElement("p");
+          const image = document.createElement("img");
+          image.src = previewSrc;
+          image.alt = "";
+          image.dataset.uploading = "true";
+          paragraph.append(image);
+          insertNodeAtSavedRange(paragraph);
+          setSelectedImage(image);
+          setStatus(editorStatus, "Preview inserted. Uploading image...");
+
           try {
-            setStatus(editorStatus, "Uploading image...");
             const { src } = await request("/api/upload", {
               method: "POST",
               timeoutMs: 90000,
@@ -558,18 +695,40 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
               })
             });
 
-            const paragraph = document.createElement("p");
-            const image = document.createElement("img");
-            image.src = src;
-            image.alt = "";
-            paragraph.append(image);
-            editor.append(paragraph);
-            setStatus(editorStatus, "Image inserted.");
+            image.dataset.publishedSrc = src;
+            delete image.dataset.uploading;
+            setStatus(editorStatus, "Image inserted. Use the image controls to size or align it.");
           } catch (error) {
+            image.dataset.uploading = "failed";
             setStatus(editorStatus, `Image upload failed: ${getErrorMessage(error)}`);
           }
         });
         reader.readAsDataURL(file);
+      };
+
+      const applyImageSize = (width) => {
+        if (!selectedImage) {
+          return;
+        }
+
+        selectedImage.style.width = width;
+        selectedImage.style.maxWidth = "100%";
+      };
+
+      const applyImageAlign = (alignment) => {
+        if (!selectedImage) {
+          return;
+        }
+
+        selectedImage.style.display = "block";
+
+        if (alignment === "left") {
+          selectedImage.style.margin = "1.5rem auto 1.5rem 0";
+        } else if (alignment === "right") {
+          selectedImage.style.margin = "1.5rem 0 1.5rem auto";
+        } else {
+          selectedImage.style.margin = "1.5rem auto";
+        }
       };
 
       document.querySelectorAll("[data-command]").forEach((button) => {
@@ -609,9 +768,30 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
         imageInput.value = "";
       });
 
+      document.querySelectorAll("[data-image-size]").forEach((button) => {
+        button.addEventListener("click", () => applyImageSize(button.dataset.imageSize));
+      });
+
+      document.querySelectorAll("[data-image-align]").forEach((button) => {
+        button.addEventListener("click", () => applyImageAlign(button.dataset.imageAlign));
+      });
+
+      editor.addEventListener("keyup", saveSelection);
+      editor.addEventListener("mouseup", saveSelection);
+      editor.addEventListener("focus", saveSelection);
+      editor.addEventListener("click", (event) => {
+        if (event.target instanceof HTMLImageElement) {
+          setSelectedImage(event.target);
+        } else {
+          setSelectedImage(undefined);
+          saveSelection();
+        }
+      });
+
       document.querySelector("#new-post-button").addEventListener("click", resetEditor);
       document.querySelector("#refresh-posts-button").addEventListener("click", loadPosts);
-      document.querySelector("#save-post-button").addEventListener("click", savePost);
+      document.querySelector("#save-draft-button").addEventListener("click", () => savePost({ draft: true }));
+      document.querySelector("#save-post-button").addEventListener("click", () => savePost({ draft: false }));
       document.querySelector("#sign-out-button").addEventListener("click", () => {
         localStorage.removeItem(tokenKey);
         window.location.reload();

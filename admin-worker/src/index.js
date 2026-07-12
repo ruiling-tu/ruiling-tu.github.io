@@ -282,7 +282,7 @@ const savePost = async (env, slug, payload) => {
   const content = serializePost(payload);
   const body = {
     branch: env.GITHUB_BRANCH ?? "main",
-    message: `Publish article: ${payload.title}`,
+    message: `${payload.draft ? "Save draft" : "Publish article"}: ${payload.title}`,
     content: utf8ToBase64(content)
   };
 
