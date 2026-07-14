@@ -1,7 +1,7 @@
 ---
 layout: ../../layouts/PostLayout.astro
-title: "Mercedes Sosa 阿根廷的乐器"
-description: ""
+title: "Mercedes Sosa"
+description: "阿根廷的乐器"
 pubDate: 2026-07-14
 category: "散文"
 draft: false
