@@ -84,7 +84,7 @@ heroAlt: "Description of the image"
 ## Edit Website Sections
 
 - Site name, subtitle, and navigation: `src/layouts/SiteLayout.astro`
-- Homepage intro text and latest-post count: `src/pages/index.astro`
+- Homepage intro text and writing list: `src/pages/index.astro`
 - About page: `src/pages/about.astro`
 - Archive page heading: `src/pages/archive.astro`
 - Individual articles: `src/pages/writings/*.md`
