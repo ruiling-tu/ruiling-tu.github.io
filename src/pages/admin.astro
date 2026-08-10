@@ -59,6 +59,15 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
         background: #333;
       }
 
+      button.danger {
+        border-color: #a12a2a;
+        color: #a12a2a;
+      }
+
+      button.danger:hover {
+        background: #fff1f1;
+      }
+
       button:disabled {
         cursor: wait;
         opacity: 0.55;
@@ -382,6 +391,7 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
               <div class="button-row">
                 <button id="save-draft-button" type="button">Save draft</button>
                 <button class="primary" id="save-post-button" type="button">Publish</button>
+                <button class="danger hidden" id="delete-post-button" type="button">Delete article</button>
               </div>
             </div>
 
@@ -440,6 +450,9 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
       const imageTools = document.querySelector("#image-tools");
       const imageWidth = document.querySelector("#image-width");
       const imageWidthOutput = document.querySelector("#image-width-output");
+      const saveButton = document.querySelector("#save-post-button");
+      const draftButton = document.querySelector("#save-draft-button");
+      const deleteButton = document.querySelector("#delete-post-button");
       const fields = {
         title: document.querySelector("#title"),
         slug: document.querySelector("#slug"),
@@ -450,6 +463,7 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
       };
 
       let activeSha = "";
+      let activeSlug = "";
       let selectedImage = undefined;
       let savedRange = undefined;
 
@@ -602,6 +616,8 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
       const resetEditor = () => {
         const today = new Date().toISOString().slice(0, 10);
         activeSha = "";
+        activeSlug = "";
+        deleteButton.classList.add("hidden");
         fields.title.value = "";
         fields.slug.value = "";
         fields.description.value = "";
@@ -630,6 +646,8 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
         setStatus(editorStatus, "Loading article...");
         const { post } = await request(`/api/posts/${encodeURIComponent(slug)}`);
         activeSha = post.sha;
+        activeSlug = post.slug;
+        deleteButton.classList.remove("hidden");
         fields.title.value = post.title;
         fields.slug.value = post.slug;
         fields.description.value = post.description;
@@ -650,12 +668,10 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
           return;
         }
 
-        const saveButton = document.querySelector("#save-post-button");
-        const draftButton = document.querySelector("#save-draft-button");
-
         try {
           saveButton.disabled = true;
           draftButton.disabled = true;
+          deleteButton.disabled = true;
           fields.published.checked = !draft;
           setStatus(editorStatus, draft ? "Saving draft to GitHub..." : "Publishing to GitHub...");
           const result = await request(`/api/posts/${encodeURIComponent(slug)}`, {
@@ -683,7 +699,9 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
                 ? "Draft saved. It will stay hidden until you publish it."
                 : "Saved to GitHub. GitHub Pages will republish in about a minute."
           );
-          activeSha = "";
+          activeSha = result.contentSha || "";
+          activeSlug = slug;
+          deleteButton.classList.toggle("hidden", !activeSha);
           loadPosts().catch(() => {
             setStatus(editorStatus, "Saved to GitHub. Refresh the page to reload the article list.");
           });
@@ -692,6 +710,52 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
         } finally {
           saveButton.disabled = false;
           draftButton.disabled = false;
+          deleteButton.disabled = false;
+        }
+      };
+
+      const deletePost = async () => {
+        if (!activeSha || !activeSlug) {
+          setStatus(editorStatus, "Load an existing article before deleting it.");
+          return;
+        }
+
+        const title = fields.title.value.trim() || activeSlug;
+        const confirmed = window.confirm(
+          `Delete “${title}”?\n\nThis removes the article from the website after GitHub Pages republishes. This cannot be undone from the admin page.`
+        );
+
+        if (!confirmed) {
+          return;
+        }
+
+        try {
+          saveButton.disabled = true;
+          draftButton.disabled = true;
+          deleteButton.disabled = true;
+          setStatus(editorStatus, "Deleting article from GitHub...");
+          const result = await request(`/api/posts/${encodeURIComponent(activeSlug)}`, {
+            method: "DELETE",
+            timeoutMs: 60000,
+            body: JSON.stringify({ sha: activeSha })
+          });
+
+          resetEditor();
+          setStatus(
+            editorStatus,
+            result.commitSha
+              ? `Article deleted (${result.commitSha.slice(0, 7)}). GitHub Pages will update in about a minute.`
+              : "Article deleted. GitHub Pages will update in about a minute."
+          );
+          loadPosts().catch(() => {
+            setStatus(editorStatus, "Article deleted. Refresh the article list to see the update.");
+          });
+        } catch (error) {
+          setStatus(editorStatus, `Delete failed: ${getErrorMessage(error)}`);
+        } finally {
+          saveButton.disabled = false;
+          draftButton.disabled = false;
+          deleteButton.disabled = false;
         }
       };
 
@@ -844,6 +908,7 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
       document.querySelector("#refresh-posts-button").addEventListener("click", loadPosts);
       document.querySelector("#save-draft-button").addEventListener("click", () => savePost({ draft: true }));
       document.querySelector("#save-post-button").addEventListener("click", () => savePost({ draft: false }));
+      deleteButton.addEventListener("click", deletePost);
       document.querySelector("#sign-out-button").addEventListener("click", () => {
         localStorage.removeItem(tokenKey);
         window.location.reload();

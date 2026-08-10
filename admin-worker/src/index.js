@@ -297,6 +297,42 @@ const savePost = async (env, slug, payload) => {
 
   return {
     commitSha: result.commit?.sha ?? "",
+    commitUrl: result.commit?.html_url ?? "",
+    contentSha: result.content?.sha ?? ""
+  };
+};
+
+const deletePost = async (env, slug, sha) => {
+  if (!sha) {
+    throw new Response(JSON.stringify({ error: "Article version is required" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json; charset=utf-8" }
+    });
+  }
+
+  const post = await getPost(env, slug);
+
+  if (post.sha !== sha) {
+    throw new Response(
+      JSON.stringify({ error: "This article changed since it was loaded. Reload it before deleting." }),
+      {
+        status: 409,
+        headers: { "Content-Type": "application/json; charset=utf-8" }
+      }
+    );
+  }
+
+  const result = await githubFetch(env, `src/pages/writings/${slug}.md`, {
+    method: "DELETE",
+    body: JSON.stringify({
+      branch: env.GITHUB_BRANCH ?? "main",
+      message: `Delete article: ${post.title}`,
+      sha
+    })
+  });
+
+  return {
+    commitSha: result.commit?.sha ?? "",
     commitUrl: result.commit?.html_url ?? ""
   };
 };
@@ -373,6 +409,13 @@ const router = async (request, env) => {
         slug,
         pubDate: payload.pubDate || new Date().toISOString().slice(0, 10)
       });
+
+      return json({ ok: true, ...result });
+    }
+
+    if (request.method === "DELETE") {
+      const payload = await request.json().catch(() => ({}));
+      const result = await deletePost(env, slug, payload.sha);
 
       return json({ ok: true, ...result });
     }

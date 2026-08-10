@@ -127,8 +127,8 @@ The site includes a private editor at:
 https://ruiling-tu.github.io/admin/
 ```
 
-The editor can create and edit articles, format selected text, change font
-family and size, insert images, and publish changes. It uses a separate
+The editor can create, edit, and delete articles, format selected text, change
+font family and size, insert images, and publish changes. It uses a separate
 Cloudflare Worker as the secure backend because GitHub Pages is static and
 cannot safely store passwords or publishing tokens.
 
