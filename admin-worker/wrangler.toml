@@ -10,3 +10,9 @@ GITHUB_OWNER = "ruiling-tu"
 GITHUB_REPO = "ruiling-tu.github.io"
 GITHUB_BRANCH = "main"
 ALLOWED_ORIGIN = "https://ruiling-tu.github.io"
+
+[[d1_databases]]
+binding = "COMMENTS_DB"
+database_name = "wells-blog-comments"
+database_id = "832589d8-ff88-48a0-881e-98b8c7341d20"
+migrations_dir = "migrations"

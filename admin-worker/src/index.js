@@ -122,6 +122,140 @@ const requireAuth = async (request, env) => {
   return verifyToken(token, env.SESSION_SECRET);
 };
 
+const normalizeSingleLine = (value) => String(value ?? "").trim().replace(/\s+/g, " ");
+const normalizeCommentBody = (value) => String(value ?? "").trim().replace(/\r\n?/g, "\n");
+
+const validateComment = (payload) => {
+  const postSlug = sanitizeSlug(payload.postSlug ?? "");
+  const authorName = normalizeSingleLine(payload.authorName);
+  const body = normalizeCommentBody(payload.body);
+
+  if (!postSlug) {
+    return { error: "Invalid article" };
+  }
+
+  if (authorName.length < 1 || authorName.length > 50) {
+    return { error: "Name must be between 1 and 50 characters" };
+  }
+
+  if (body.length < 2 || body.length > 2000) {
+    return { error: "Comment must be between 2 and 2,000 characters" };
+  }
+
+  if (normalizeSingleLine(payload.website)) {
+    return { error: "Comment could not be submitted" };
+  }
+
+  return { postSlug, authorName, body };
+};
+
+const getVisitorHash = async (request, env) => {
+  const address = request.headers.get("CF-Connecting-IP") ?? "unknown";
+  const userAgent = request.headers.get("User-Agent") ?? "unknown";
+  const salt = env.COMMENT_HASH_SALT ?? env.SESSION_SECRET;
+  const bytes = await crypto.subtle.digest("SHA-256", textEncoder.encode(`${salt}:${address}:${userAgent}`));
+
+  return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, "0")).join("");
+};
+
+const listApprovedComments = async (env, postSlug) => {
+  const result = await env.COMMENTS_DB.prepare(
+    `SELECT id, author_name AS authorName, body, created_at AS createdAt
+     FROM comments
+     WHERE post_slug = ? AND status = 'approved'
+     ORDER BY created_at ASC, id ASC`
+  )
+    .bind(postSlug)
+    .all();
+
+  return result.results ?? [];
+};
+
+const submitComment = async (request, env) => {
+  const payload = await request.json();
+  const comment = validateComment(payload);
+
+  if (comment.error) {
+    return json({ error: comment.error }, 400);
+  }
+
+  const post = await getPost(env, comment.postSlug);
+
+  if (post.draft) {
+    return json({ error: "Comments are not available for this article" }, 404);
+  }
+
+  const visitorHash = await getVisitorHash(request, env);
+  const recent = await env.COMMENTS_DB.prepare(
+    `SELECT COUNT(*) AS count
+     FROM comments
+     WHERE visitor_hash = ? AND created_at >= datetime('now', '-15 minutes')`
+  )
+    .bind(visitorHash)
+    .first();
+
+  if (Number(recent?.count ?? 0) >= 3) {
+    return json({ error: "Too many comments submitted. Please try again later." }, 429);
+  }
+
+  await env.COMMENTS_DB.prepare(
+    `INSERT INTO comments (post_slug, author_name, body, status, visitor_hash)
+     VALUES (?, ?, ?, 'pending', ?)`
+  )
+    .bind(comment.postSlug, comment.authorName, comment.body, visitorHash)
+    .run();
+
+  return json({ ok: true, message: "Thanks. Your comment is awaiting approval." }, 201);
+};
+
+const listCommentsForAdmin = async (env) => {
+  const result = await env.COMMENTS_DB.prepare(
+    `SELECT id, post_slug AS postSlug, author_name AS authorName, body, status,
+            created_at AS createdAt, updated_at AS updatedAt
+     FROM comments
+     ORDER BY CASE status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END,
+              created_at DESC, id DESC`
+  ).all();
+
+  return result.results ?? [];
+};
+
+const moderateComment = async (env, id, status) => {
+  if (!Number.isInteger(id) || id < 1) {
+    return json({ error: "Invalid comment" }, 400);
+  }
+
+  if (!['approved', 'hidden'].includes(status)) {
+    return json({ error: "Status must be approved or hidden" }, 400);
+  }
+
+  const result = await env.COMMENTS_DB.prepare(
+    `UPDATE comments SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
+  )
+    .bind(status, id)
+    .run();
+
+  if (!result.meta?.changes) {
+    return json({ error: "Comment not found" }, 404);
+  }
+
+  return json({ ok: true });
+};
+
+const deleteComment = async (env, id) => {
+  if (!Number.isInteger(id) || id < 1) {
+    return json({ error: "Invalid comment" }, 400);
+  }
+
+  const result = await env.COMMENTS_DB.prepare("DELETE FROM comments WHERE id = ?").bind(id).run();
+
+  if (!result.meta?.changes) {
+    return json({ error: "Comment not found" }, 404);
+  }
+
+  return json({ ok: true });
+};
+
 const githubHeaders = (env) => ({
   Accept: "application/vnd.github+json",
   Authorization: `Bearer ${env.GITHUB_TOKEN}`,
@@ -331,6 +465,11 @@ const deletePost = async (env, slug, sha) => {
     })
   });
 
+  await env.COMMENTS_DB.prepare("DELETE FROM comments WHERE post_slug = ?")
+    .bind(slug)
+    .run()
+    .catch(() => undefined);
+
   return {
     commitSha: result.commit?.sha ?? "",
     commitUrl: result.commit?.html_url ?? ""
@@ -385,7 +524,40 @@ const router = async (request, env) => {
     return handleLogin(request, env);
   }
 
+  if (path.startsWith("/api/comments/")) {
+    const postSlug = sanitizeSlug(decodeURIComponent(path.replace("/api/comments/", "")));
+
+    if (!postSlug) {
+      return json({ error: "Invalid article" }, 400);
+    }
+
+    if (request.method === "GET") {
+      return json({ comments: await listApprovedComments(env, postSlug) });
+    }
+  }
+
+  if (path === "/api/comments" && request.method === "POST") {
+    return submitComment(request, env);
+  }
+
   await requireAuth(request, env);
+
+  if (path === "/api/admin/comments" && request.method === "GET") {
+    return json({ comments: await listCommentsForAdmin(env) });
+  }
+
+  if (path.startsWith("/api/admin/comments/")) {
+    const id = Number.parseInt(path.replace("/api/admin/comments/", ""), 10);
+
+    if (request.method === "PUT") {
+      const payload = await request.json();
+      return moderateComment(env, id, payload.status);
+    }
+
+    if (request.method === "DELETE") {
+      return deleteComment(env, id);
+    }
+  }
 
   if (path === "/api/posts" && request.method === "GET") {
     return json({ posts: await listPosts(env) });

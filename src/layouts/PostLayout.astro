@@ -2,6 +2,8 @@
 import SiteLayout from "./SiteLayout.astro";
 
 const { frontmatter } = Astro.props;
+const commentsApiUrl = import.meta.env.PUBLIC_COMMENTS_API_URL ?? import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
+const postSlug = Astro.url.pathname.split("/").filter(Boolean).at(-1) ?? "";
 
 const title = frontmatter.title ?? "Untitled";
 const description = frontmatter.description ?? "";
@@ -35,8 +37,137 @@ const pubDate = frontmatter.pubDate
     <div class="prose">
       <slot />
     </div>
+    <section
+      class="comments"
+      id="comments"
+      aria-labelledby="comments-title"
+      data-api-url={commentsApiUrl}
+      data-post-slug={postSlug}
+    >
+      <h2 id="comments-title">Comments</h2>
+      <div class="comment-list" id="comment-list" aria-live="polite">
+        <p class="comment-note">Loading comments…</p>
+      </div>
+      <form class="comment-form" id="comment-form">
+        <div class="comment-field">
+          <label for="comment-name">Name</label>
+          <input id="comment-name" name="authorName" maxlength="50" autocomplete="name" required />
+        </div>
+        <div class="comment-field">
+          <label for="comment-body">Comment</label>
+          <textarea id="comment-body" name="body" minlength="2" maxlength="2000" rows="5" required></textarea>
+        </div>
+        <div class="comment-honeypot" aria-hidden="true">
+          <label for="comment-website">Website</label>
+          <input id="comment-website" name="website" tabindex="-1" autocomplete="off" />
+        </div>
+        <button type="submit">Submit comment</button>
+        <p class="comment-note" id="comment-status" aria-live="polite">
+          Comments are reviewed before they appear.
+        </p>
+      </form>
+    </section>
     <footer class="post-footer">
       <a href="/archive/">Back to archive</a>
     </footer>
   </article>
 </SiteLayout>
+
+<script>
+  const commentsSection = document.querySelector("#comments");
+
+  if (commentsSection instanceof HTMLElement) {
+    const apiBase = commentsSection.dataset.apiUrl?.replace(/\/$/, "") ?? "";
+    const postSlug = commentsSection.dataset.postSlug ?? "";
+    const commentList = commentsSection.querySelector("#comment-list");
+    const commentForm = commentsSection.querySelector("#comment-form");
+    const commentStatus = commentsSection.querySelector("#comment-status");
+
+    const formatDate = (value: string) =>
+      new Date(`${value.replace(" ", "T")}Z`).toLocaleDateString("en", {
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+      });
+
+    const renderComments = (comments: Array<{ authorName: string; body: string; createdAt: string }>) => {
+      if (!(commentList instanceof HTMLElement)) return;
+      commentList.replaceChildren();
+
+      if (comments.length === 0) {
+        const empty = document.createElement("p");
+        empty.className = "comment-note";
+        empty.textContent = "No comments yet.";
+        commentList.append(empty);
+        return;
+      }
+
+      comments.forEach((comment) => {
+        const article = document.createElement("article");
+        article.className = "comment";
+        const header = document.createElement("div");
+        header.className = "comment-meta";
+        const author = document.createElement("strong");
+        author.textContent = comment.authorName;
+        const date = document.createElement("time");
+        date.textContent = formatDate(comment.createdAt);
+        const body = document.createElement("p");
+        body.textContent = comment.body;
+        header.append(author, date);
+        article.append(header, body);
+        commentList.append(article);
+      });
+    };
+
+    const loadComments = async () => {
+      if (!apiBase || !postSlug) {
+        commentsSection.classList.add("comments-unavailable");
+        return;
+      }
+
+      try {
+        const response = await fetch(`${apiBase}/api/comments/${encodeURIComponent(postSlug)}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error ?? "Unable to load comments");
+        renderComments(data.comments ?? []);
+      } catch {
+        if (commentList instanceof HTMLElement) {
+          commentList.textContent = "Comments are temporarily unavailable.";
+        }
+      }
+    };
+
+    commentForm?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!(commentForm instanceof HTMLFormElement) || !(commentStatus instanceof HTMLElement)) return;
+
+      const submitButton = commentForm.querySelector("button[type='submit']");
+      const formData = new FormData(commentForm);
+      commentStatus.textContent = "Submitting…";
+      if (submitButton instanceof HTMLButtonElement) submitButton.disabled = true;
+
+      try {
+        const response = await fetch(`${apiBase}/api/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            postSlug,
+            authorName: formData.get("authorName"),
+            body: formData.get("body"),
+            website: formData.get("website")
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error ?? "Unable to submit comment");
+        commentForm.reset();
+        commentStatus.textContent = data.message;
+      } catch (error) {
+        commentStatus.textContent = error instanceof Error ? error.message : "Unable to submit comment.";
+      } finally {
+        if (submitButton instanceof HTMLButtonElement) submitButton.disabled = false;
+      }
+    });
+
+    loadComments();
+  }
+</script>

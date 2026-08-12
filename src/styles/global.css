@@ -286,6 +286,112 @@ h1,
   margin-top: 4rem;
 }
 
+.comments {
+  width: var(--article-measure);
+  max-width: 100%;
+  margin-top: 4rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--line);
+}
+
+.comments h2 {
+  margin-bottom: 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.comment-list {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.comment {
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.comment-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.55rem;
+  font-size: 0.92rem;
+}
+
+.comment-meta strong {
+  font-weight: 500;
+}
+
+.comment-meta time,
+.comment-note {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.comment p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+}
+
+.comment-form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.comment-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.comment-field label {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.comment-field input,
+.comment-field textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--background);
+  color: var(--text);
+  padding: 0.7rem;
+  font: inherit;
+}
+
+.comment-field textarea {
+  resize: vertical;
+}
+
+.comment-form button {
+  width: fit-content;
+  border: 1px solid var(--text);
+  background: var(--text);
+  color: var(--background);
+  padding: 0.65rem 0.9rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.comment-form button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.comment-honeypot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.comments-unavailable {
+  display: none;
+}
+
 .about-grid {
   display: grid;
   gap: 2rem;
@@ -384,6 +490,11 @@ code {
   }
 
   .post-footer {
+    width: 100%;
+    margin-top: 3rem;
+  }
+
+  .comments {
     width: 100%;
     margin-top: 3rem;
   }

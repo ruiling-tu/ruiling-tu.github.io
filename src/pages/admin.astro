@@ -167,6 +167,50 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
         color: var(--muted);
       }
 
+      .admin-section-title {
+        margin: 1.75rem 0 0.75rem;
+        color: var(--muted);
+        font-size: 0.85rem;
+        font-weight: 400;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .comment-admin-list {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .comment-admin-item {
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .comment-admin-item p {
+        margin: 0.35rem 0;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        line-height: 1.45;
+      }
+
+      .comment-admin-meta {
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .comment-admin-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-top: 0.5rem;
+      }
+
+      .comment-admin-actions button {
+        width: auto;
+        padding: 0.35rem 0.5rem;
+        font-size: 0.82rem;
+      }
+
       .editor-shell {
         padding: 1.5rem;
       }
@@ -347,6 +391,10 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
             <button id="sign-out-button" type="button">Sign out</button>
           </div>
           <div class="post-list" id="post-list"></div>
+          <h2 class="admin-section-title">Comments</h2>
+          <button id="refresh-comments-button" type="button">Refresh comments</button>
+          <p class="status" id="comment-admin-status"></p>
+          <div class="comment-admin-list" id="comment-admin-list"></div>
         </div>
       </aside>
 
@@ -444,6 +492,8 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
       const postSidebar = document.querySelector("#post-sidebar");
       const editorPanel = document.querySelector("#editor-panel");
       const postList = document.querySelector("#post-list");
+      const commentAdminList = document.querySelector("#comment-admin-list");
+      const commentAdminStatus = document.querySelector("#comment-admin-status");
       const editorStatus = document.querySelector("#editor-status");
       const editor = document.querySelector("#editor");
       const imageInput = document.querySelector("#image-input");
@@ -640,6 +690,78 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
           button.addEventListener("click", () => loadPost(post.slug));
           postList.append(button);
         });
+      };
+
+      const loadComments = async () => {
+        setStatus(commentAdminStatus, "Loading comments...");
+        const { comments } = await request("/api/admin/comments");
+        commentAdminList.replaceChildren();
+
+        if (comments.length === 0) {
+          setStatus(commentAdminStatus, "No comments yet.");
+          return;
+        }
+
+        const pendingCount = comments.filter((comment) => comment.status === "pending").length;
+        setStatus(commentAdminStatus, pendingCount ? `${pendingCount} awaiting approval.` : "All comments reviewed.");
+
+        comments.forEach((comment) => {
+          const item = document.createElement("article");
+          item.className = "comment-admin-item";
+          const meta = document.createElement("div");
+          meta.className = "comment-admin-meta";
+          meta.textContent = `${comment.status} · ${comment.postSlug} · ${comment.authorName} · ${comment.createdAt}`;
+          const body = document.createElement("p");
+          body.textContent = comment.body;
+          const actions = document.createElement("div");
+          actions.className = "comment-admin-actions";
+
+          const addAction = (label, action, danger = false) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.textContent = label;
+            if (danger) button.classList.add("danger");
+            button.addEventListener("click", action);
+            actions.append(button);
+          };
+
+          if (comment.status !== "approved") {
+            addAction("Approve", () => updateComment(comment.id, "approved"));
+          }
+          if (comment.status !== "hidden") {
+            addAction("Hide", () => updateComment(comment.id, "hidden"));
+          }
+          addAction("Delete", () => deleteComment(comment.id, comment.authorName), true);
+          item.append(meta, body, actions);
+          commentAdminList.append(item);
+        });
+      };
+
+      const updateComment = async (id, status) => {
+        try {
+          setStatus(commentAdminStatus, status === "approved" ? "Approving comment..." : "Hiding comment...");
+          await request(`/api/admin/comments/${id}`, {
+            method: "PUT",
+            body: JSON.stringify({ status })
+          });
+          await loadComments();
+        } catch (error) {
+          setStatus(commentAdminStatus, `Comment update failed: ${getErrorMessage(error)}`);
+        }
+      };
+
+      const deleteComment = async (id, authorName) => {
+        if (!window.confirm(`Permanently delete the comment from ${authorName}?`)) {
+          return;
+        }
+
+        try {
+          setStatus(commentAdminStatus, "Deleting comment...");
+          await request(`/api/admin/comments/${id}`, { method: "DELETE" });
+          await loadComments();
+        } catch (error) {
+          setStatus(commentAdminStatus, `Comment deletion failed: ${getErrorMessage(error)}`);
+        }
       };
 
       const loadPost = async (slug) => {
@@ -906,6 +1028,7 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
 
       document.querySelector("#new-post-button").addEventListener("click", resetEditor);
       document.querySelector("#refresh-posts-button").addEventListener("click", loadPosts);
+      document.querySelector("#refresh-comments-button").addEventListener("click", loadComments);
       document.querySelector("#save-draft-button").addEventListener("click", () => savePost({ draft: true }));
       document.querySelector("#save-post-button").addEventListener("click", () => savePost({ draft: false }));
       deleteButton.addEventListener("click", deletePost);
@@ -937,7 +1060,7 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
           localStorage.setItem(tokenKey, token);
           showEditor();
           resetEditor();
-          await loadPosts();
+          await Promise.all([loadPosts(), loadComments()]);
         } catch (error) {
           setStatus(loginStatus, error.message);
         }
@@ -948,7 +1071,7 @@ const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL ?? "";
       } else if (getToken()) {
         showEditor();
         resetEditor();
-        loadPosts().catch(() => {
+        Promise.all([loadPosts(), loadComments()]).catch(() => {
           localStorage.removeItem(tokenKey);
           window.location.reload();
         });

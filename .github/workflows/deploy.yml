@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PUBLIC_ADMIN_API_URL: ${{ vars.PUBLIC_ADMIN_API_URL }}
+      PUBLIC_COMMENTS_API_URL: ${{ vars.PUBLIC_ADMIN_API_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

@@ -132,6 +132,11 @@ font family and size, insert images, and publish changes. It uses a separate
 Cloudflare Worker as the secure backend because GitHub Pages is static and
 cannot safely store passwords or publishing tokens.
 
+Each article also has a moderated comment section. Visitor comments are stored
+in Cloudflare D1 and remain hidden until they are approved from the admin page.
+The admin can approve, hide, or permanently delete comments. The implementation
+uses free Cloudflare plan allowances and does not require a paid comment service.
+
 The backend source is in:
 
 ```text
