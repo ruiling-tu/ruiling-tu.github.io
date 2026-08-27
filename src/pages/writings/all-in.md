@@ -1,7 +1,7 @@
 ---
 layout: ../../layouts/PostLayout.astro
 title: "那些年，消失的投资人们"
-description: "请老板给我打钱"
+description: "请老板给我打钱，助力每一个梦想"
 pubDate: 2026-08-26
 category: "散文"
 draft: true
